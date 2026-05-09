@@ -39,6 +39,7 @@ export default function AdBannerDisplay({ position }: Props) {
   if (!loaded || !ad) return null;
 
   const isHorizontal = position === "top" || position === "bottom";
+  const isSidebar = position === "sidebar-left" || position === "sidebar-right";
 
   // ── Embed-code ad (AADS / any HTML snippet) ───────────────────────────────
   if (ad.embedCode) {
@@ -48,10 +49,11 @@ export default function AdBannerDisplay({ position }: Props) {
         style={{
           display: "flex",
           justifyContent: "center",
+          alignItems: isSidebar ? "stretch" : undefined,
           padding: isHorizontal ? "8px 16px" : "0",
           width: "100%",
+          ...(isSidebar ? { height: "100%", minHeight: 0 } : {}),
         }}
-        // dangerouslySetInnerHTML renders the raw iframe / script from the ad network
         dangerouslySetInnerHTML={{ __html: ad.embedCode }}
       />
     );
@@ -68,6 +70,7 @@ export default function AdBannerDisplay({ position }: Props) {
         justifyContent: "center",
         padding: isHorizontal ? "8px 16px" : "0",
         width: "100%",
+        ...(isSidebar ? { height: "100%", minHeight: 0 } : {}),
       }}
     >
       <a
@@ -78,6 +81,7 @@ export default function AdBannerDisplay({ position }: Props) {
         style={{
           display: "block",
           width: "100%",
+          ...(isSidebar ? { height: "100%" } : {}),
           borderRadius: "12px",
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.08)",
@@ -102,7 +106,7 @@ export default function AdBannerDisplay({ position }: Props) {
           style={{
             display: "block",
             width: "100%",
-            height: isHorizontal ? "90px" : "auto",
+            height: isSidebar ? "100%" : isHorizontal ? "90px" : "auto",
             objectFit: "cover",
           }}
           loading="lazy"

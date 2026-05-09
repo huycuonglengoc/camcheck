@@ -194,14 +194,12 @@ export default function HomePage() {
 
         {/* Main content */}
         <div className={styles.content}>
-          {/* Left sidebar ad */}
-          <div className={styles.sidebarLeft}>
-            <AdBannerDisplay position="sidebar-left" />
-          </div>
+          {/* Viewport row: sidebar-left + camera viewport + sidebar-right */}
+          <div className={styles.viewportRow}>
+            <div className={styles.sidebarLeft}>
+              <AdBannerDisplay position="sidebar-left" />
+            </div>
 
-          {/* Camera section */}
-          <section className={styles.cameraSection}>
-            {/* Video viewport */}
             <div
               className={`${styles.viewport} ${status === "active" ? styles.viewportActive : ""}`}
             >
@@ -291,6 +289,13 @@ export default function HomePage() {
               )}
             </div>
 
+            <div className={styles.sidebarRight}>
+              <AdBannerDisplay position="sidebar-right" />
+            </div>
+          </div>
+
+          {/* Camera controls + stats below viewport */}
+          <section className={styles.cameraSection}>
             {/* Controls */}
             <div className={`${styles.controls} glass`}>
               <div className={styles.controlsRow}>
@@ -482,11 +487,6 @@ export default function HomePage() {
               </ul>
             </div>
           </section>
-
-          {/* Right sidebar ad */}
-          <div className={styles.sidebarRight}>
-            <AdBannerDisplay position="sidebar-right" />
-          </div>
         </div>
 
         {/* Bottom Ad Banner */}
