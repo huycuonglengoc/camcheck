@@ -7,8 +7,12 @@ import Redis from "ioredis";
 export interface AdBanner {
   id: string;
   name: string;
-  imageUrl: string;
-  linkUrl: string;
+  /** Raw HTML embed code (e.g. AADS iframe snippet). When set, imageUrl/linkUrl are unused. */
+  embedCode?: string;
+  /** Direct image URL – used when embedCode is not set */
+  imageUrl?: string;
+  /** Destination URL – used when embedCode is not set */
+  linkUrl?: string;
   position: "top" | "bottom" | "sidebar-left" | "sidebar-right";
   isActive: boolean;
   createdAt: string;

@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 interface AdBanner {
   id: string;
   name: string;
-  imageUrl: string;
-  linkUrl: string;
+  embedCode?: string;
+  imageUrl?: string;
+  linkUrl?: string;
   position: "top" | "bottom" | "sidebar-left" | "sidebar-right";
   isActive: boolean;
 }
@@ -18,7 +19,6 @@ interface Props {
 export default function AdBannerDisplay({ position }: Props) {
   const [ad, setAd] = useState<AdBanner | null>(null);
   const [loaded, setLoaded] = useState(false);
-
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,6 @@ export default function AdBannerDisplay({ position }: Props) {
         return r.json();
       })
       .then((ads: AdBanner[]) => {
-        // Public API already returns only active ads
         const match = ads.find((a) => a.position === position);
         setAd(match || null);
         setImgError(false);
@@ -37,9 +36,29 @@ export default function AdBannerDisplay({ position }: Props) {
       .catch(() => setLoaded(true));
   }, [position]);
 
-  if (!loaded || !ad || imgError) return null;
+  if (!loaded || !ad) return null;
 
   const isHorizontal = position === "top" || position === "bottom";
+
+  // ── Embed-code ad (AADS / any HTML snippet) ───────────────────────────────
+  if (ad.embedCode) {
+    return (
+      <div
+        className={isHorizontal ? "adBannerHorizontal" : "adBannerSidebar"}
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          padding: isHorizontal ? "8px 16px" : "0",
+          width: "100%",
+        }}
+        // dangerouslySetInnerHTML renders the raw iframe / script from the ad network
+        dangerouslySetInnerHTML={{ __html: ad.embedCode }}
+      />
+    );
+  }
+
+  // ── Classic image banner ──────────────────────────────────────────────────
+  if (!ad.imageUrl || !ad.linkUrl || imgError) return null;
 
   return (
     <div

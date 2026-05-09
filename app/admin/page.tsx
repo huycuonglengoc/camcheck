@@ -8,8 +8,9 @@ import styles from "./admin.module.css";
 interface AdBanner {
   id: string;
   name: string;
-  imageUrl: string;
-  linkUrl: string;
+  embedCode?: string;
+  imageUrl?: string;
+  linkUrl?: string;
   position: "top" | "bottom" | "sidebar-left" | "sidebar-right";
   isActive: boolean;
   createdAt: string;
@@ -26,6 +27,7 @@ const POSITIONS: { value: AdPosition; label: string; icon: string }[] = [
 
 const EMPTY_FORM = {
   name: "",
+  embedCode: "",
   imageUrl: "",
   linkUrl: "",
   position: "top" as AdPosition,
@@ -37,6 +39,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [adType, setAdType] = useState<"embed" | "image">("embed");
   const [editId, setEditId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState<{
@@ -79,15 +82,19 @@ export default function AdminPage() {
   const openCreateForm = () => {
     setEditId(null);
     setFormData(EMPTY_FORM);
+    setAdType("embed");
     setShowForm(true);
   };
 
   const openEditForm = (ad: AdBanner) => {
     setEditId(ad.id);
+    const type = ad.embedCode ? "embed" : "image";
+    setAdType(type);
     setFormData({
       name: ad.name,
-      imageUrl: ad.imageUrl,
-      linkUrl: ad.linkUrl,
+      embedCode: ad.embedCode || "",
+      imageUrl: ad.imageUrl || "",
+      linkUrl: ad.linkUrl || "",
       position: ad.position,
     });
     setShowForm(true);
@@ -97,22 +104,26 @@ export default function AdminPage() {
     e.preventDefault();
     setSaving(true);
 
+    // Build payload based on ad type
+    const payload =
+      adType === "embed"
+        ? { name: formData.name, embedCode: formData.embedCode, position: formData.position }
+        : { name: formData.name, imageUrl: formData.imageUrl, linkUrl: formData.linkUrl, position: formData.position };
+
     try {
       if (editId) {
-        // Update
         const res = await fetch("/api/ads", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editId, ...formData }),
+          body: JSON.stringify({ id: editId, ...payload }),
         });
         if (!res.ok) throw new Error("Failed to update");
         showToast("Ad updated successfully!");
       } else {
-        // Create
         const res = await fetch("/api/ads", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error("Failed to create");
         showToast("Ad created successfully!");
@@ -361,6 +372,24 @@ export default function AdminPage() {
             </div>
 
             <form onSubmit={handleSubmit} className={styles.form}>
+              {/* Ad Type Switcher */}
+              <div className={styles.adTypeTabs}>
+                <button
+                  type="button"
+                  className={`${styles.adTypeTab} ${adType === "embed" ? styles.adTypeTabActive : ""}`}
+                  onClick={() => setAdType("embed")}
+                >
+                  📋 Embed Code
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.adTypeTab} ${adType === "image" ? styles.adTypeTabActive : ""}`}
+                  onClick={() => setAdType("image")}
+                >
+                  🖼️ Image URL
+                </button>
+              </div>
+
               <div className={styles.formGrid}>
                 <div className={styles.field}>
                   <label htmlFor="ad-name">Ad Name *</label>
@@ -370,7 +399,7 @@ export default function AdminPage() {
                     className="input"
                     value={formData.name}
                     onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="e.g. Google Ads Top Banner"
+                    placeholder="e.g. AADS Banner #2437074"
                     required
                   />
                 </div>
@@ -394,42 +423,81 @@ export default function AdminPage() {
                   </select>
                 </div>
 
-                <div className={`${styles.field} ${styles.fieldFull}`}>
-                  <label htmlFor="ad-image-url">Banner Image URL *</label>
-                  <input
-                    id="ad-image-url"
-                    type="url"
-                    className="input"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData((f) => ({ ...f, imageUrl: e.target.value }))}
-                    placeholder="https://example.com/banner.jpg"
-                    required
-                  />
-                  {formData.imageUrl && (
-                    <div className={styles.imagePreview}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={formData.imageUrl}
-                        alt="Preview"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        style={{ maxHeight: 80, borderRadius: 8, border: "1px solid var(--border)" }}
+                {adType === "embed" ? (
+                  <div className={`${styles.field} ${styles.fieldFull}`}>
+                    <label htmlFor="ad-embed-code">
+                      Ad Embed Code *
+                      <span style={{ fontWeight: 400, color: "var(--text-muted)", marginLeft: 8 }}>
+                        (paste HTML from AADS, Google AdSense, etc.)
+                      </span>
+                    </label>
+                    <textarea
+                      id="ad-embed-code"
+                      className="input"
+                      value={formData.embedCode}
+                      onChange={(e) => setFormData((f) => ({ ...f, embedCode: e.target.value }))}
+                      placeholder={`<!-- AADS AD UNIT -->\n<div id="frame" style="width:100%;margin:auto;">\n  <iframe data-aa='2437074' src='//acceptable.a-ads.com/2437074/?size=Adaptive'\n    style='border:0;width:70%;height:auto;display:block;margin:auto'></iframe>\n</div>`}
+                      rows={8}
+                      required={adType === "embed"}
+                      style={{ fontFamily: "monospace", fontSize: "0.8rem", resize: "vertical" }}
+                    />
+                    {formData.embedCode && (
+                      <div style={{
+                        marginTop: 12,
+                        padding: 12,
+                        background: "rgba(255,255,255,0.04)",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                        fontSize: "0.75rem",
+                        color: "var(--text-muted)",
+                      }}>
+                        <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
+                          👁️ Preview (live render):
+                        </strong>
+                        <div dangerouslySetInnerHTML={{ __html: formData.embedCode }} />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className={`${styles.field} ${styles.fieldFull}`}>
+                      <label htmlFor="ad-image-url">Banner Image URL *</label>
+                      <input
+                        id="ad-image-url"
+                        type="url"
+                        className="input"
+                        value={formData.imageUrl}
+                        onChange={(e) => setFormData((f) => ({ ...f, imageUrl: e.target.value }))}
+                        placeholder="https://example.com/banner.jpg"
+                        required={adType === "image"}
+                      />
+                      {formData.imageUrl && (
+                        <div className={styles.imagePreview}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={formData.imageUrl}
+                            alt="Preview"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            style={{ maxHeight: 80, borderRadius: 8, border: "1px solid var(--border)" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={`${styles.field} ${styles.fieldFull}`}>
+                      <label htmlFor="ad-link-url">Destination URL *</label>
+                      <input
+                        id="ad-link-url"
+                        type="url"
+                        className="input"
+                        value={formData.linkUrl}
+                        onChange={(e) => setFormData((f) => ({ ...f, linkUrl: e.target.value }))}
+                        placeholder="https://advertiser.com"
+                        required={adType === "image"}
                       />
                     </div>
-                  )}
-                </div>
-
-                <div className={`${styles.field} ${styles.fieldFull}`}>
-                  <label htmlFor="ad-link-url">Destination URL *</label>
-                  <input
-                    id="ad-link-url"
-                    type="url"
-                    className="input"
-                    value={formData.linkUrl}
-                    onChange={(e) => setFormData((f) => ({ ...f, linkUrl: e.target.value }))}
-                    placeholder="https://advertiser.com"
-                    required
-                  />
-                </div>
+                  </>
+                )}
               </div>
 
               <div className={styles.formActions}>
@@ -503,20 +571,34 @@ export default function AdminPage() {
                       <tr key={ad.id} className={styles.tableRow}>
                         <td>
                           <div className={styles.adThumb}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={ad.imageUrl}
-                              alt={ad.name}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src =
-                                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='40'%3E%3Crect width='60' height='40' fill='%231a1f30'/%3E%3Ctext x='50%25' y='50%25' fill='%238b9ab5' font-size='10' text-anchor='middle' dy='.35em'%3ENo img%3C/text%3E%3C/svg%3E";
-                              }}
-                            />
+                            {ad.embedCode ? (
+                              <div style={{
+                                width: 60, height: 40,
+                                background: "rgba(99,102,241,0.15)",
+                                borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "1.4rem",
+                              }}>📋</div>
+                            ) : (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={ad.imageUrl}
+                                alt={ad.name}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='40'%3E%3Crect width='60' height='40' fill='%231a1f30'/%3E%3Ctext x='50%25' y='50%25' fill='%238b9ab5' font-size='10' text-anchor='middle' dy='.35em'%3ENo img%3C/text%3E%3C/svg%3E";
+                                }}
+                              />
+                            )}
                           </div>
                         </td>
                         <td>
                           <div className={styles.adName}>{ad.name}</div>
-                          <div className={styles.adLink}>{ad.linkUrl}</div>
+                          <div className={styles.adLink}>
+                            {ad.embedCode ? "📋 Embed code" : ad.linkUrl}
+                          </div>
                         </td>
                         <td>
                           <span className={styles.posBadge}>

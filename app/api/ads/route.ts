@@ -29,11 +29,18 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, imageUrl, linkUrl, position } = body;
+    const { name, embedCode, imageUrl, linkUrl, position } = body;
 
-    if (!name || !imageUrl || !linkUrl || !position) {
+    // Must have: name + position + (embedCode OR imageUrl+linkUrl)
+    if (!name || !position) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: name, position" },
+        { status: 400 }
+      );
+    }
+    if (!embedCode && (!imageUrl || !linkUrl)) {
+      return NextResponse.json(
+        { error: "Provide either embedCode or both imageUrl and linkUrl" },
         { status: 400 }
       );
     }
@@ -41,8 +48,7 @@ export async function POST(request: Request) {
     const newAd = {
       id: uuidv4(),
       name,
-      imageUrl,
-      linkUrl,
+      ...(embedCode ? { embedCode } : { imageUrl, linkUrl }),
       position,
       isActive: true,
       createdAt: new Date().toISOString(),

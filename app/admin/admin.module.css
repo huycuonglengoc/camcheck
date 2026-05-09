@@ -300,6 +300,35 @@
 
 .imagePreview { margin-top: 8px; }
 
+/* ---- Ad Type Tab Switcher ---- */
+.adTypeTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.adTypeTab {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.adTypeTab:hover {
+  color: var(--text-primary);
+  border-color: rgba(99,102,241,0.3);
+}
+.adTypeTabActive {
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.4);
+  color: var(--accent-light);
+  font-weight: 700;
+}
+
 .formActions {
   display: flex;
   gap: 12px;
