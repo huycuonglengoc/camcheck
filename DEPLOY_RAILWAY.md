@@ -22,7 +22,6 @@ railway login
 3. Railway sẽ tự động tạo Redis và inject các biến môi trường:
    - `REDIS_URL` (internal, dùng trong production)
    - `REDIS_PRIVATE_URL` (alias của REDIS_URL)
-   - `REDIS_PUBLIC_URL` (để kết nối từ ngoài)
 
 > **Lưu ý**: `lib/storage.ts` đã được cấu hình để tự động nhận `REDIS_URL` từ Railway — không cần cấu hình thêm gì!
 
@@ -81,7 +80,8 @@ Railway tự động inject khi cùng project:
 ```
 REDIS_URL=redis://default:<password>@<host>.railway.internal:6379
 REDIS_PRIVATE_URL=redis://default:<password>@<host>.railway.internal:6379
-REDIS_PUBLIC_URL=redis://default:<password>@<host>.railway.app:<port>
 ```
 
-Code trong `lib/storage.ts` sẽ thử theo thứ tự: `REDIS_URL` → `REDIS_PRIVATE_URL` → `REDIS_PUBLIC_URL`.
+Code trong `lib/storage.ts` chỉ sử dụng internal URL: `REDIS_PRIVATE_URL` → `REDIS_URL`.
+
+> **Lưu ý**: `REDIS_PUBLIC_URL` không được sử dụng vì có thể gây lỗi protocol khi Railway proxy qua HTTP.

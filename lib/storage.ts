@@ -21,35 +21,48 @@ export interface AdBanner {
 // In-memory fallback for local development (resets on restart)
 const memoryStore: { ads: AdBanner[] } = { ads: [] };
 
-// Singleton Redis client to avoid creating multiple connections
+// Singleton Redis client
 let redisClient: Redis | null = null;
 
+function createRedisClient(url: string): Redis {
+  const client = new Redis(url, {
+    maxRetriesPerRequest: 3,
+    retryStrategy: (times) => {
+      if (times > 10) return null;
+      return Math.min(times * 300, 3000);
+    },
+    enableReadyCheck: true,
+    lazyConnect: true,
+    connectTimeout: 10000,
+    commandTimeout: 8000,
+    tls: url.startsWith("rediss://") ? {} : undefined,
+  });
+
+  client.on("error", (err) => {
+    console.error("[Redis] Connection error:", err.message);
+    // Reset singleton on fatal protocol errors so next request gets a fresh client
+    if (err.message.includes("Protocol error")) {
+      redisClient = null;
+    }
+  });
+
+  client.on("connect", () => {
+    console.log("[Redis] Connected to Railway Redis");
+  });
+
+  return client;
+}
+
 function getRedis(): Redis | null {
-  // Railway Redis provides REDIS_URL (e.g. redis://default:password@host:port)
+  // Use internal Railway URLs only (private → standard)
   const redisUrl =
-    process.env.REDIS_URL ||
     process.env.REDIS_PRIVATE_URL ||
-    process.env.REDIS_PUBLIC_URL;
+    process.env.REDIS_URL;
 
   if (!redisUrl) return null;
 
   if (!redisClient) {
-    redisClient = new Redis(redisUrl, {
-      // Retry strategy: give up after 3 retries to avoid hanging
-      maxRetriesPerRequest: 3,
-      enableReadyCheck: true,
-      lazyConnect: false,
-      // TLS support for rediss:// URLs (Railway may use this)
-      tls: redisUrl.startsWith("rediss://") ? {} : undefined,
-    });
-
-    redisClient.on("error", (err) => {
-      console.error("[Redis] Connection error:", err.message);
-    });
-
-    redisClient.on("connect", () => {
-      console.log("[Redis] Connected to Railway Redis");
-    });
+    redisClient = createRedisClient(redisUrl);
   }
 
   return redisClient;
